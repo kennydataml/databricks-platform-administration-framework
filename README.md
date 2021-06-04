@@ -1,5 +1,6 @@
-# Databricks DevOps: Cluster and ACL
-Contains wrapper for SCIM and Permissions API
+# Databricks DevOps: Platform Administration Framework
+Framework for end to end platform administration using YAML configuration files. This includes cluster management and ACL permissions.  
+The Python code is a wrapper for SCIM and Permissions REST API.
 ## Tech Debt
 - SCIM API is still in-preview. Should __switch to AAD integration__ once it is GA.
 - Permissions API is still in-preview. Update the end point in `api.py` once it is GA.
