@@ -1,0 +1,48 @@
+GROUPS:
+  - name: test_users
+    type: user
+    members:
+      - user_name: user@${domain}
+  - name: test_spn
+    type: spn
+    members:
+      # need app ID
+      - application_id: adf_appid
+        display_name: adf
+
+SECRETS:
+  - scope: test-scope
+    acl:
+      - permission: MANAGE
+        group:
+          - test_users
+      - permission: READ
+        group:
+          - test_spn
+
+CLUSTERS:
+  - name: test-cluster
+    acl:
+      - permission: CAN_ATTACH_TO
+        group:
+          - test_users
+      - permission: CAN_RESTART
+        group:
+          - test_spn
+
+WORKSPACE:
+  - folder: /
+    acl:
+      - permission: CAN_MANAGE
+        group:
+          - admins
+          - custom_admin
+  - folder: /test-folder
+    acl:
+      - permission: CAN_MANAGE
+        group:
+          - test_user
+      - permission: CAN_RUN
+        group:
+          - test_spn
+ 

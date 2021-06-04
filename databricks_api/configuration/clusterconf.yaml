@@ -1,0 +1,114 @@
+# HIGH CONCURRENCY
+# https://docs.databricks.com/dev-tools/api/latest/examples.html#create-a-high-concurrency-cluster
+# ML runtime
+- cluster_name: test-highcon-ML
+  spark_conf:
+    # old name for high-concurrency
+    spark.databricks.cluster.profile: serverless
+    spark.databricks.repl.allowedLanguages: python,sql
+    spark.databricks.passthrough.enabled: 'true'
+    spark.databricks.delta.preview.enabled: 'true'
+    spark.databricks.pyspark.enableProcessIsolation: 'true'
+  autoscale:
+    min_workers: 1
+    max_workers: 2
+  spark_version: 8.1.x-cpu-ml-scala2.12
+  node_type_id: Standard_DS3_v2
+  custom_tags:
+    hello: world
+  autotermination_minutes: 30
+# non-ML runtime
+- cluster_name: test-highcon
+  spark_conf:
+    # old name for high-concurrency
+    spark.databricks.cluster.profile: serverless
+    spark.databricks.repl.allowedLanguages: python,sql
+    spark.databricks.passthrough.enabled: 'true'
+    spark.databricks.delta.preview.enabled: 'true'
+    spark.databricks.pyspark.enableProcessIsolation: 'true'
+  autoscale:
+    min_workers: 1
+    max_workers: 2
+  spark_version: 8.1.x-scala2.12
+  node_type_id: Standard_DS3_v2
+  custom_tags:
+    hello: world
+  autotermination_minutes: 30
+
+# STANDARD CLUSTERS - AUTOSCALE
+- cluster_name: DevEngCluster
+  spark_conf:
+    spark.databricks.delta.preview.enabled: 'true'
+  spark_version: 8.1.x-scala2.12
+  node_type_id: Standard_DS3_v2
+  spark_env_vars:
+    PYSPARK_PYTHON: /databricks/python3/bin/python3
+  autoscale:
+    min_workers: 1
+    max_workers: 4
+  custom_tags:
+    hello: world
+  autotermination_minutes: 30
+# GPU ML doesn't support high-concurency
+- cluster_name: test-gpu-ml
+  spark_conf:
+    spark.databricks.delta.preview.enabled: 'true'
+  spark_version: 8.1.x-gpu-ml-scala2.12
+  node_type_id: Standard_NC6s_v3
+  spark_env_vars:
+    PYSPARK_PYTHON: /databricks/python3/bin/python3
+  autoscale:
+    min_workers: 1
+    max_workers: 2
+  custom_tags:
+    AZ-MacroEnv: NONPROD
+  autotermination_minutes: 10
+
+# STANDARD CLUSTER - SPARK CONFIG SECRETS
+- cluster_name: spark-config-secrets
+  spark_conf:
+    spark.databricks.delta.preview.enabled: 'true'
+    spark.databricks.acl.needAdminPermissionToViewLogs: 'true'
+    spark.hadoop.fs.azure.account.auth.type.STORAGE_ACCOUNT_NAME.dfs.core.windows.net: OAuth
+    spark.hadoop.fs.azure.account.oauth.provider.type.STORAGE_ACCOUNT_NAME.dfs.core.windows.net: org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
+    spark.hadoop.fs.azure.account.oauth2.client.id.STORAGE_ACCOUNT_NAME.dfs.core.windows.net: '{{secrets/scope-name/spn-id}}'
+    spark.hadoop.fs.azure.account.oauth2.client.secret.STORAGE_ACCOUNT_NAME.dfs.core.windows.net: '{{secrets/scope-name/spn-key}}'
+    spark.hadoop.fs.azure.account.oauth2.client.endpoint.STORAGE_ACCOUNT_NAME.dfs.core.windows.net: '{{secrets/scope-name/tenant-id-oauth-endpoint}}'
+  spark_version: 8.2.x-cpu-ml-scala2.12
+  node_type_id: Standard_DS3_v2
+  spark_env_vars:
+    PYSPARK_PYTHON: /databricks/python3/bin/python3
+  autoscale:
+    min_workers: 1
+    max_workers: 2
+  autotermination_minutes: 30
+
+# STANDARD CLUSTERS - FIXED WORKERS
+- cluster_name: test-standard-cluster
+  spark_conf:
+    spark.databricks.delta.preview.enabled: 'true'
+  spark_version: 8.1.x-scala2.12
+  node_type_id: Standard_DS3_v2
+  spark_env_vars:
+    PYSPARK_PYTHON: /databricks/python3/bin/python3
+  num_workers: 3
+  custom_tags:
+      hello: world
+  autotermination_minutes: 30
+
+# SINGLE NODES
+- cluster_name: test-singlenode
+  single_user_name: user@domain.ca
+  spark_conf:
+    spark.databricks.passthrough.enabled: 'true'
+    spark.databricks.cluster.profile: singleNode
+    spark.master: local[*]
+    spark.databricks.delta.preview.enabled: 'true'
+  spark_version: 8.1.x-scala2.12
+  node_type_id: Standard_DS3_v2
+  spark_env_vars:
+    PYSPARK_PYTHON: /databricks/python3/bin/python3
+  num_workers: 0
+  custom_tags:
+    hello: world
+  autotermination_minutes: 10

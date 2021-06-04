@@ -1,0 +1,7 @@
+requests
+databricks-cli
+pyyaml
+mako
+pytest
+flake8
+autopep8

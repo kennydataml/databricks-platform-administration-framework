@@ -1,0 +1,8 @@
+- pypi: 
+    package: pandas==1.2.0
+- pypi: 
+    package: koalas==1.6.0
+- maven: 
+    coordinates: com.databricks:spark-xml_2.12:0.11.0
+- maven:
+    coordinates: com.microsoft.azure:spark-mssql-connector_2.12_3.0:1.0.0-alpha
