@@ -25,17 +25,14 @@ SCIM API
         self.users_url = f"{self.scim_url}/Users"
 
         self.patchop_schema = {
-            "schemas": [
-                "urn:ietf:params:scim:api:messages:2.0:PatchOp"
-            ], }
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+        }
         self.sp_schema = {
-            "schemas": [
-                "urn:ietf:params:scim:schemas:core:2.0:ServicePrincipal"
-            ], }
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ServicePrincipal"]
+        }
         self.user_schema = {
-            "schemas": [
-                "urn:ietf:params:scim:schemas:core:2.0:User"
-            ], }
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"]
+        }
 
     def get_sp(self, app_id=None):
         if app_id:
@@ -141,7 +138,7 @@ SCIM API
             logger.error(err)
 
     # @trycatch
-    def delete_sp(self, app_id, groups):
+    def delete_sp(self, app_id):
         r = self.get_sp(app_id=app_id)
         logger.debug(r)
         sp_id, _ = self.filter_get_sp(r)
@@ -162,15 +159,15 @@ SCIM API
         return r
 
     def get_user(self, user_name):
-        r = self.request(f"{self.users_url}?filter=userName+eq+{user_name}",
-                         request_type="get")
-        user = r["Resources"][0]
-        userid = user["id"]
-        groups = user.get("groups")
-        if groups:
-            groups = self.parse_group_vals(groups)
+        return self.request(f"{self.users_url}?filter=userName+eq+{user_name}",
+                            request_type="get")["Resources"][0]
+        # user = r["Resources"][0]
+        # userid = user["id"]
+        # groups = user.get("groups")
+        # if groups:
+        #     groups = self.parse_group_vals(groups)
 
-        return userid, groups
+        # return userid, groups
 
     def get_multiple_users(self, user_filter):
         r = self.request(f"{self.users_url}?filter=userName+co+{user_filter}",
@@ -180,25 +177,37 @@ SCIM API
         return users
 
     def update_user(self, user_name, display_name):
-        userid, groups = self.get_user(user_name)
+        scim_user = self.get_user(user_name)
+        userid = scim_user.pop("id")
         id_url = f"{self.users_url}/{userid}"
 
-        body = {"userName": user_name,
-                "displayName": display_name,
-                **self.user_schema
-                }
+        # split_name = display_name.split(" ")
+        # scim_user["name"]["givenName"] = " ".join(split_name[:-1])
+        # scim_user["name"]["familyName"] = " ".join(split_name[-1])
+        # scim_user["displayName"] = display_name
+        # logger.debug(scim_user)
 
-        if groups:
-            body["groups"] = groups
+        # body = {**scim_user, **self.user_schema}
 
-        r = self.request(id_url, body, request_type="put")
+        # r = self.request(id_url, body, request_type="put")
+        r = self.request(id_url,
+                         {
+                             "Operations": [{
+                                 "op": "Replace",
+                                 "path": "displayName",
+                                 "value": display_name
+                             }],
+                             **self.patchop_schema
+                         },
+                         request_type="patch")
         logger.info(
             f"UPDATED user {user_name} with display_name {display_name}")
         return r
 
     def delete_user(self, user_name, userid=None):
         if not userid:
-            userid, _ = self.get_user(user_name)
+            scim_user = self.get_user(user_name)
+            userid = scim_user["id"]
 
         r = self.request(f"{self.users_url}/{userid}",
                          request_type="delete")

@@ -76,7 +76,8 @@ def deploy_groups(groups_client, scim, groups_config, remove_unmanaged=False):
             if cur_mem not in modified_member_list:
                 remove_members.append({member_key: cur_mem["user_name"]})
 
-        logger.warning(f"unmanaged members: {remove_members}")
+        logger.debug({"current members": current_members})
+        logger.warning({"unmanaged members": remove_members})
         # logger.info(f"adding members: {add_members}")
         logger.info(f"adding members to group")
 
@@ -98,12 +99,12 @@ def deploy_groups(groups_client, scim, groups_config, remove_unmanaged=False):
                     r = scim.add_user(user_name, display_name, groups)
                 except Exception as err:
                     logger.debug(repr(err))
-                    # if already existing user, update the groups
-                    if display_name:
-                        scim.update_user(user_name, display_name)
 
                     r = groups_client.add_member(
                         principal, user_name, None)
+                    # update display name as well
+                    if display_name:
+                        scim.update_user(user_name, display_name)
 
                 logger.debug(r)
                 # logger.info(f"successfully added {user_name}")
@@ -241,14 +242,17 @@ def deploy_cluster_acl(cluster_client, cluster_perm, cluster_config):
         logger.info(cluster_name)
         logger.debug(acl_list)
 
-        # get cluster id
-        cluster_id = cluster_client.get_cluster_id_for_name(
-            cluster["name"])
+        try:
+            # get cluster id
+            cluster_id = cluster_client.get_cluster_id_for_name(
+                cluster["name"])
 
-        # replace ACL on cluster
-        logger.info(
-            cluster_perm.replace_permissions(cluster_id, acl_list)
-        )
+            # replace ACL on cluster
+            logger.info(
+                cluster_perm.replace_permissions(cluster_id, acl_list)
+            )
+        except Exception as err:
+            logger.debug(err)
 
 
 def deploy_workspace_acl(workspace_client, dir_perm, workspace_config):
@@ -266,7 +270,7 @@ def deploy_workspace_acl(workspace_client, dir_perm, workspace_config):
     # delete unmanaged folders
     folder_list = [f["folder"] for f in workspace_config]
     logger.debug(folder_list)
-    ignore_folders = ["Shared", "Users"]
+    ignore_folders = ["Shared", "Users", "Repos"]
 
     current_items = ["/" + i.basename for i in workspace_client.list_objects("/")
                      if i.basename not in ignore_folders]
@@ -313,9 +317,8 @@ def main(config, token=None, host=None, cmdline_args=None):
     :type cmdline_args: argparse
     """
     remove_unmanaged = False
-    if cmdline_args:
-        if cmdline_args.remove:
-            remove_unmanaged = True
+    if cmdline_args.remove:
+        remove_unmanaged = True
 
     logger.debug(config)
     kwargs = {"token": token,
@@ -323,10 +326,12 @@ def main(config, token=None, host=None, cmdline_args=None):
 
     # https://github.com/databricks/databricks-cli/blob/master/databricks_cli/sdk/api_client.py#L65
     api_client = ApiClient(**kwargs)
-    # https://github.com/databricks/databricks-cli/blob/master/databricks_cli/groups/api.py#L27
-    groups_client = GroupsApi(api_client)
-    scim = SCIM(**kwargs)
-    deploy_groups(groups_client, scim, config["GROUPS"], remove_unmanaged=remove_unmanaged)
+    if not cmdline_args.skip_groups:
+        # https://github.com/databricks/databricks-cli/blob/master/databricks_cli/groups/api.py#L27
+        groups_client = GroupsApi(api_client)
+        scim = SCIM(**kwargs)
+        deploy_groups(groups_client, scim,
+                      config["GROUPS"], remove_unmanaged=remove_unmanaged)
 
     # https://github.com/databricks/databricks-cli/blob/master/databricks_cli/secrets/api.py#L27
     secret_client = SecretApi(api_client)
@@ -357,12 +362,15 @@ if __name__ == "__main__":
 
     # mako_kwargs = {
         # "domain": args.domain,
+        # "adf_platform_appid": args.adf_platform_appid,
+        # "adf_triton_appid": args.adf_triton_appid,
+        # "adf_delphi_appid": args.adf_delphi_appid,
     # }
 
     acl_config = render_yaml(
-        f"{dir_path}\\configuration\\{args.acl_file}", 
+        f"{dir_path}\\configuration\\{args.acl_file}",
         # mako_kwargs
-        )
+    )
 
     main(acl_config,
          token=args.personal_access_token,
@@ -371,4 +379,5 @@ if __name__ == "__main__":
 
     end = timer()
     runtime = str(datetime.timedelta(seconds=end-start))
-    logger.info(f"EXECUTION TIME = {runtime}") # Time in seconds, e.g. 5.38091952400282
+    # Time in day:hour:minute.second, e.g. 0:02:51.598863
+    logger.info(f"EXECUTION TIME = {runtime}")
